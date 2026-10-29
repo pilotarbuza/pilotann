@@ -1,37 +1,39 @@
 <p align="center">
-  <img src="assets/banner.svg" alt="ANN — AI Aviation Documentation Assistant" width="100%">
+  <img src="assets/banner.svg" alt="ANN — AI Flight Deck & Aviation Documentation Assistant" width="100%">
 </p>
 
 <p align="center">
-  <strong>Специализированный AI-ассистент по лётной и технической документации гражданской авиации</strong><br>
-  Гибридный RAG-поиск по FCOM, QRH, MEL и ФАП • Проверка цитат со сканами PDF • Декодер METAR/TAF • SimBrief OFP • Telegram Mini App & PWA
+  <strong>Specialized AI Flight Deck & Aviation Documentation Assistant</strong><br>
+  Hybrid RAG search across FCOM, QRH, MEL, and Aviation Regulations • Verified PDF Page Citations • METAR/TAF Decoder • SimBrief OFP Integration • Telegram Mini App & PWA
 </p>
 
 <p align="center">
-  <a href="https://t.me/pilotann_bot"><strong>🤖 Telegram-бот (@pilotann_bot)</strong></a> ·
-  <a href="https://ann.pilotarbuza.com"><strong>🌐 Веб-приложение (ann.pilotarbuza.com)</strong></a> ·
-  <a href="docs/ARCHITECTURE.md"><strong>Архитектура и RAG</strong></a> ·
-  <a href="docs/ROADMAP.md"><strong>Планы развития</strong></a> ·
-  <a href="https://pilotarbuza.com"><strong>Автор (pilotarbuza.com)</strong></a>
+  [ English | <a href="README.ru.md">Русский</a> ] ·
+  <a href="https://t.me/pilotann_bot"><strong>Telegram Bot (@pilotann_bot)</strong></a> ·
+  <a href="https://ann.pilotarbuza.com"><strong>Web Application (ann.pilotarbuza.com)</strong></a> ·
+  <a href="docs/ARCHITECTURE.md"><strong>Architecture &amp; RAG</strong></a> ·
+  <a href="docs/ROADMAP.md"><strong>Roadmap</strong></a> ·
+  <a href="https://pilotarbuza.com"><strong>Author Portfolio</strong></a>
 </p>
 
 ---
 
-## О проекте
+## Overview
 
-**ANN (pilotann)** — это интеллектуальный ассистент для пилотов, курсантов лётных училищ, диспетчеров и авиационных инженеров. Проект решает фундаментальную проблему авиационной индустрии: **быстрый и безошибочный поиск точных ограничений, процедур и параметров в многотысячестраничных руководствах по лётной эксплуатации (FCOM, QRH, FCTM, WBM, MEL)**.
+**ANN (pilotann)** is an intelligent flight deck documentation assistant engineered for airline pilots, flight cadets, dispatchers, and aerospace engineers. It solves a fundamental operational challenge in civil aviation: **rapid, error-free retrieval of precise limitations, operational procedures, and performance data from multi-thousand-page aircraft manuals (FCOM, QRH, FCTM, WBM, MEL)**.
 
-В отличие от стандартных универсальных нейросетей общего назначения, ANN:
-1. **Исключает галлюцинации**: ответ формируется строго на базе проверенных чанков оригинальных руководств с двухэтапной проверкой чисел, единиц измерения и логических условий.
-2. **Визуально подтверждает цитату**: автоматически рендерит и обводит цитируемый фрагмент прямо на странице исходного PDF-мануала.
-3. **Понимает авиационную специфику**: различает процедуры разных авиакомпаний (Аэрофлот, S7, Россия, Победа, Utair и др.) и типы ВС.
-4. **Интегрирован с реальными полётными инструментами**: декодирует фактическую и прогностическую погоду (METAR/TAF), рассчитывает боковой ветер и загружает планы полёта из **SimBrief**.
+Standard general-purpose LLMs are prone to hallucinations and lack awareness of specific airline Standard Operating Procedures (SOPs). ANN addresses this through:
 
-Сервис работает как в виде **Telegram-бота**, так и в виде современного автономного **PWA / Telegram Mini App** на [ann.pilotarbuza.com](https://ann.pilotarbuza.com).
+1. **Zero Hallucination Protocol**: Every factual claim is cross-checked against source documentation. Unverifiable assertions are rejected.
+2. **Visual Citation Verification**: Renders the exact page scan of the original manufacturer PDF with an overlaid highlight on the referenced clause.
+3. **Airline & Fleet Differentiation**: Differentiates between airline-specific configurations (Aeroflot, S7 Airlines, Rossiya, Pobeda, Utair, etc.) and aircraft types.
+4. **Flight Operations Tooling**: Integrated METAR/TAF weather decoder with magnetic runway crosswind calculations and SimBrief Operational Flight Plan (OFP) parsing.
+
+The service is available as a **Telegram Bot** and as an offline-capable **Progressive Web App (PWA) / Telegram Mini App** at [ann.pilotarbuza.com](https://ann.pilotarbuza.com).
 
 ---
 
-## Ключевой функционал
+## Core Capabilities
 
 ```
                       ┌────────────────────────────────────────┐
@@ -40,60 +42,74 @@
                                          │
      ┌───────────────────────┬───────────┴───────────┬───────────────────────┐
      ▼                       ▼                       ▼                       ▼
- 🔍 Hybrid RAG         📑 PDF Highlighting    🌤️ METAR / TAF        📋 SimBrief OFP
- • LanceDB (Vector)    • pypdfium2 engine     • ICAO regex parser   • Flight plan import
- • SQLite FTS5 (BM25)  • Bounding-box match   • Crosswind calc      • Fuel, ZFW, alternates
- • Reciprocal Rank     • Pillow visual scan   • Runway condition    • Waypoints & winds
+  Hybrid RAG            PDF Highlighting       METAR / TAF            SimBrief OFP
+ • LanceDB (Vector)    • pypdfium2 engine     • ICAO regex parser    • Flight plan import
+ • SQLite FTS5 (BM25)  • Bounding-box match   • Crosswind calc       • Fuel, ZFW, alternates
+ • Reciprocal Rank     • Pillow visual scan   • Runway condition     • Waypoints & winds
 ```
 
-- **Гибридный RAG-поиск**: объединение векторных эмбеддингов `multilingual-e5-base` (LanceDB) и лексического индекса (SQLite FTS5 с морфологическим стеммером Snowball) по формуле RRF.
-- **Поддержка флота**: Airbus (A220, A310, A320 Family, A330, A340, A350, A380), Boeing (737CL/NG/MAX, 747, 757, 767, 777, 787), Superjet 100, ATR 42/72, Embraer, CRJ, Dash 8, L-410, Diamond DA40/42, Cessna 172.
-- **Авиационная метеорология**: расшифровка сводок погоды METAR и TAF с расчётом встречной/боковой составляющей ветра по магнитным курсам полос.
-- **Интеграция с SimBrief**: парсинг расчетного плана полета (OFP) — эшелон полета, расчет топлива, центровка, загрузка и запасные аэродромы.
-- **Нормативно-правовая база РФ**: встроенный поиск по актуальным Федеральным авиационным правилам (ФАП-128, ФАП-293, ФАП-10, ФАП-147) и Воздушному кодексу РФ.
-- **Автономное PWA / Telegram Mini App**: быстрый веб-интерфейс с поддержкой авторизации через Telegram, Google, Apple ID и Web Push-уведомлений.
+- **Hybrid RAG Pipeline**: Combines dense semantic vector retrieval via LanceDB (`multilingual-e5-base`) with lexical search via SQLite FTS5 (Snowball morphological stemmer) using Reciprocal Rank Fusion (RRF).
+- **Fleet Coverage**: Airbus (A220, A310, A320ceo/neo Family, A330, A340, A350, A380), Boeing (737CL/NG/MAX, 747, 757, 767, 777, 787), Superjet 100, ATR 42/72, Embraer E-Jets, CRJ Series, Dash 8 / Q400, L-410, Diamond DA40/42, Cessna 172.
+- **Aviation Meteorology**: Decodes real-time METAR and TAF reports, computes headwind/crosswind/tailwind components based on actual runway magnetic headings.
+- **SimBrief Dispatch Integration**: Parses operational flight plans (OFP), extracting cruising altitudes, fuel contingency, zero-fuel weight (ZFW), center of gravity limits, and alternate aerodromes.
+- **Regulatory Frameworks**: Built-in indexing of ICAO Annexes, FAA Regulations, and Russian Federal Aviation Regulations (FAP-128, FAP-293, FAP-10, FAP-147).
+- **Standalone PWA & Mini App**: Responsive client supporting Telegram Login, Google Sign-In, Apple ID, and Web Push notifications.
 
 ---
 
-## Подробное техническое описание и архитектура
+## System Architecture
 
 > [!NOTE]
-> Полный математический и алгоритмический разбор RAG-движка, формулы слияния рангов и криптографии авторизации вынесен в отдельный документ: **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**.
+> For the comprehensive mathematical formulations of the RRF fusion algorithm, LanceDB vector indexing, and cryptographic authentication specifications, refer to **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**.
 
-### Как взаимодействуют компоненты системы
+### Component Interaction Flow
 
 ```mermaid
 flowchart TD
-    subgraph Frontend["Клиенты"]
+    subgraph Frontend["Client Layer"]
         TG["Telegram Bot (@pilotann_bot)"]
         MiniApp["Telegram Mini App"]
-        PWA["PWA Веб-клиент (ann.pilotarbuza.com)"]
+        PWA["PWA Web Client (ann.pilotarbuza.com)"]
     end
 
-    subgraph CoreGateway["Серверный шлюз (Python 3.10+)"]
-        BotEngine["aiogram 3.x\n(Асинхронные обработчики, FSM)"]
-        WebServer["aiohttp Server\n(REST API, PWA статика)"]
-        AuthModule["web_accounts.py\n(HMAC initData, OAuth2, JWT)"]
-        RedisStore["Redis 7\n(FSM стейты, кэш сессий)"]
+    subgraph CoreGateway["Server Gateway (Python 3.10+)"]
+        BotEngine["aiogram 3.x
+(Async Handlers, FSM)"]
+        WebServer["aiohttp Server
+(REST API, PWA Static)"]
+        AuthModule["web_accounts.py
+(HMAC initData, OAuth2, JWT)"]
+        RedisStore["Redis 7
+(FSM States, Session Cache)"]
     end
 
-    subgraph AIEngine["Интеллектуальный конвейер (ai_agent.py)"]
-        Router["Классификатор намерений\n(Тип ВС, оператор, ограничения)"]
-        AnswerCache["ai_cache.py\n(Семантический кэш ответов)"]
-        HybridSearch["ai_index.py\n(RRF слияние FTS5 + LanceDB)"]
-        FastModel["Claude Haiku\n(Быстрый стриминг ответа)"]
-        DeepVerifier["Claude Sonnet\n(Строгая сверка фактов и чисел)"]
-        PDFRender["ai_pages.py\n(Рендеринг страницы PDF с подсветкой)"]
+    subgraph AIEngine["Intelligence Pipeline (ai_agent.py)"]
+        Router["Intent Classifier
+(Aircraft Type, Airline, Limitations)"]
+        AnswerCache["ai_cache.py
+(Semantic Response Cache)"]
+        HybridSearch["ai_index.py
+(RRF Fusion FTS5 + LanceDB)"]
+        FastModel["Claude Haiku
+(Fast Initial Streaming Draft)"]
+        DeepVerifier["Claude Sonnet
+(Strict Fact & Numerical Verification)"]
+        PDFRender["ai_pages.py
+(PDF Page Rasterization & Highlighting)"]
     end
 
-    subgraph DataStorages["Хранилища и данные"]
-        SQLiteFTS[("SQLite FTS5\nЛексический индекс")]
-        LanceVector[("LanceDB\n768-dim Vector Store")]
-        MainDB[("stats.db\nПрофили, история, аналитика")]
-        DocRepo[("Репозиторий PDF\nFCOM / QRH / MEL")]
+    subgraph DataStorages["Storage & Knowledge Base"]
+        SQLiteFTS[("SQLite FTS5
+Lexical Keyword Index")]
+        LanceVector[("LanceDB
+768-dim Vector Store")]
+        MainDB[("stats.db
+User Profiles & Analytics")]
+        DocRepo[("Document Store
+FCOM / QRH / MEL PDFs")]
     end
 
-    %% Связи
+    %% Connections
     TG <--> BotEngine
     MiniApp <--> WebServer
     PWA <--> WebServer
@@ -119,58 +135,69 @@ flowchart TD
     WebServer --> MainDB
 ```
 
-### Жизненный цикл обработки запроса пилота
+---
 
-1. **Маршрутизация и классификация (`ai_agent.py`)**:
-   Запрос анализируется на упоминание конкретного воздушного судна, авиакомпании и признака раздела ограничений (*Limitations*). Если тип ВС не указан явно, бот берёт значение из сохранённого профиля пилота (`/type`).
-2. **Проверка семантического кэша (`ai_cache.py`)**:
-   Повторяющиеся типовые запросы отдаются мгновенно из локального кэша `stats.db`.
-3. **Двухканальное извлечение фрагментов (`ai_index.py`)**:
-   - **FTS5-канал**: осуществляет точный лексический поиск с морфологическим стеммингом (`snowballstemmer`), вылавливая аббревиатуры и коды отказов.
-   - **Векторный канал**: [LanceDB](https://lancedb.com/) ищет семантически близкие чанки по векторным эмбеддингам модели `intfloat/multilingual-e5-base`.
-4. **Слияние рангов Reciprocal Rank Fusion (RRF)**:
-   Оценки обоих каналов объединяются, нивелируя недостатки каждого метода в отдельности.
-5. **Нейросетевой реранкинг**:
-   Топ-20 результатов переоцениваются Cross-Encoder реранкером по шкале релевантности от 0 до 3.
-6. **Двухэтапная генерация (Haiku + Sonnet)**:
-   - Быстрая модель (Claude Haiku) мгновенно начинает отдавать черновик ответа пользователю.
-   - Сильная модель (Claude Sonnet) параллельно проводит верификацию: сверяет каждое числовое значение, ограничения и сноски с оригинальным текстом чанков. Если модель не находит прямого подтверждения факту — утверждение отсекается.
-7. **Формирование визуального подтверждения (`ai_pages.py`)**:
-   Движок обращается к оригинальному PDF-файлу руководства, с помощью `pypdfium2` мгновенно растеризует страницу нужного раздела и накладывает полупрозрачную маркерную плашку поверх цитируемого фрагмента (`Pillow`). Пользователь получает ответ вместе с фото фрагмента мануала.
+### Request Execution Lifecycle
+
+1. **Routing and Classification (`ai_agent.py`)**:
+   Incoming queries are evaluated for aircraft type, operator specifics, and limitation tags (*Limitations*). If no aircraft type is specified, the user profile default is applied (`/type`).
+2. **Semantic Cache Evaluation (`ai_cache.py`)**:
+   Identical or semantically matching queries are served from the local cache in `stats.db` with sub-10ms latency.
+3. **Dual-Channel Retrieval (`ai_index.py`)**:
+   - **FTS5 Lexical Channel**: Performs exact keyword and abbreviation matching with morphological stemming (`snowballstemmer`).
+   - **Vector Semantic Channel**: [LanceDB](https://lancedb.com/) retrieves semantically related document chunks using 768-dimensional embeddings from `intfloat/multilingual-e5-base`.
+4. **Reciprocal Rank Fusion (RRF)**:
+   Scores from both retrieval channels are normalized and fused using RRF ($k=60$).
+5. **Cross-Encoder Neural Reranking**:
+   The top 20 candidate passages are re-scored by a Cross-Encoder model across a 0 to 3 relevance spectrum.
+6. **Two-Stage Generation and Strict Verification**:
+   - Fast Model (Claude Haiku) generates an immediate streaming draft.
+   - Deep Verifier (Claude Sonnet) executes fact-checking: cross-examining every limitation, numerical tolerance, and unit against source chunks. If a claim cannot be verified from the retrieved context, it is pruned.
+7. **Visual Citation Generation (`ai_pages.py`)**:
+   The engine locates the original manual page, renders it via `pypdfium2`, and composites a semi-transparent highlight marker over the exact citation text (`Pillow`).
 
 ---
 
-## Стек технологий и библиотека зависимостей
+## Technology Stack
 
-Каждая библиотека в проекте выбрана с учётом строгих требований к отказоустойчивости, минимальной задержке и ресурсоёмкости:
+Every library and engine was selected based on strict criteria: operational reliability, zero-overhead embedded architecture, and minimal latency:
 
-| Библиотека | Роль в системе | Обоснование выбора |
+| Component | Library / Tool | Role in Architecture |
 |---|---|---|
-| **`aiogram 3.x`** | Асинхронный Telegram Bot API | Стандарт современной асинхронной разработки ботов на Python с поддержкой FSM, роутеров и нативных Telegram Mini Apps. |
-| **`LanceDB`** | Векторная база данных | Встраиваемая (serverless) колоночная векторная СУБД на Rust/Arrow. Работает без отдельного фонового демона и обеспечивает минимальное время отклика на диске. |
-| **`sentence-transformers`** | Генерация эмбеддингов | Локальный запуск модели `multilingual-e5-base`, обеспечивающей превосходное качество понимания русско- и англоязычных авиационных текстов. |
-| **`pypdfium2`** | Движок рендеринга PDF | Основан на движке Google PDFium. Растеризует страницы PDF в разы быстрее традиционных утилит (poppler/pdf2image) при минимальном потреблении оперативной памяти. |
-| **`Pillow`** | Обработка изображений | Наложение графической подсветки (bounding box highlight) на отсканированные страницы и оптимизация изображений для отправки в чат. |
-| **`aiohttp`** | Web-сервер и HTTP-клиент | Легковесный асинхронный сервер, обслуживающий REST API веб-приложения, раздачу статики и внешние вызовы к API метеорологии и SimBrief. |
-| **`snowballstemmer`** | Морфологический анализ | Быстрый стеммер без внешних тяжелых словарей, обеспечивающий качественную нормализацию поисковых запросов в SQLite FTS5. |
-| **`redis`** | Кэш и сессии FSM | Хранение промежуточных состояний диалога, управление очередями и блокировка повторных спам-запросов. |
-| **`PyJWT[crypto]`** | Аутентификация | Криптографическая валидация токенов авторизации Google Sign-In и Apple ID для PWA-версии. |
-| **`OpenAI SDK`** | Клиент нейросетей | Работа с моделями Claude / GPT через единый высокопроизводительный шлюз OpenRouter API. |
+| **Bot Gateway** | `aiogram 3.x` | Modern asynchronous Telegram Bot API framework with native FSM and Telegram Mini App support. |
+| **Vector Engine** | `LanceDB` | Serverless, columnar vector database built on Rust/Arrow with low disk-read overhead. |
+| **Embeddings** | `sentence-transformers` | On-premise execution of `intfloat/multilingual-e5-base` for robust bilingual English/Russian technical parsing. |
+| **PDF Rendering** | `pypdfium2` | High-performance Google PDFium wrapper for sub-50ms page rasterization with low memory footprint. |
+| **Image Processing** | `Pillow` | Visual coordinate mapping and semi-transparent bounding-box highlights over PDF page scans. |
+| **HTTP Gateway** | `aiohttp` | Async web server hosting REST APIs, static assets, and external flight service integrations. |
+| **Stemmer** | `snowballstemmer` | Morphological normalization for SQLite FTS5 queries without bulky external dictionary dependencies. |
+| **Session Cache** | `redis` | FSM dialogue state storage, rate limiting, and request deduplication. |
+| **Authentication** | `PyJWT[crypto]` | Cryptographic verification of Telegram initData (HMAC-SHA256) and Google/Apple OAuth2 tokens. |
+| **LLM Gateway** | `OpenAI SDK` | Unified API integration layer connecting Claude 3.5 / GPT-4o models via low-latency endpoints. |
 
 ---
 
-## Запуск и использование
+## Production Deployment & Access
 
-Проект развёрнут в виде готового сервиса:
-- **Telegram-бот**: запустить диалог можно по ссылке [@pilotann_bot](https://t.me/pilotann_bot).
-- **Веб-приложение и PWA**: доступно в браузере или на мобильных устройствах по адресу [ann.pilotarbuza.com](https://ann.pilotarbuza.com).
+The platform operates as a managed production service:
 
-Для знакомства с деталями архитектуры обратитесь к файлу [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). План развития и предстоящие релизы зафиксированы в [docs/ROADMAP.md](docs/ROADMAP.md).
+- **Telegram Bot**: Start a session via [@pilotann_bot](https://t.me/pilotann_bot).
+- **Web App & PWA**: Accessible on mobile and desktop at [ann.pilotarbuza.com](https://ann.pilotarbuza.com).
+
+For detailed engineering analysis of the RAG pipeline and cryptographic specifications, see **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**. For development milestones, see **[docs/ROADMAP.md](docs/ROADMAP.md)**.
 
 ---
 
-## Контакты и авторство
+## Security & Data Privacy
 
-- **Автор проекта**: Максим Ахмадулин ([pilotarbuza.com](https://pilotarbuza.com))
+- **Zero Flight-Log Retention**: Operational flight plans (OFP) and user queries are processed in memory and never persisted to external AI training pipelines.
+- **Airline Manual Confidentiality**: Proprietary airline manuals are partitioned in dedicated schema namespaces and isolated per operator authorization level.
+- **Local Embedded Storage**: LanceDB and SQLite operate locally on-premise without external vector database API dependencies.
+
+---
+
+## Author & Contact
+
+- **Author**: Maksim Akhmadulin ([pilotarbuza.com](https://pilotarbuza.com))
 - **Telegram**: [@pilot_arbuza](https://t.me/pilot_arbuza)
 - **Email**: akhmadulinmaksim@gmail.com

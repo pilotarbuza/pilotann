@@ -1,45 +1,47 @@
-# План развития проекта (Roadmap) — ANN (pilotann)
+# Project Roadmap — ANN (pilotann)
 
-Этот документ фиксирует ключевые этапы развития платформы **ANN**, текущие достижения и планы на будущие релизы.
+[ English | [Русский](ROADMAP.ru.md) ]
 
----
-
-## 📍 Текущий статус: Версия 1.2 (Active Production)
-
-CAD/Авиационный ассистент и гибридный RAG-движок успешно запущены в связке с Telegram-ботом и веб-приложением.
-
-### ✅ Уже реализовано:
-- **Гибридный RAG-поиск**: объединение SQLite FTS5 (BM25) и LanceDB (`multilingual-e5-base`) по алгоритму RRF.
-- **Двухэтапная верификация ответов**: быстрый черновик на Claude Haiku + проверка цитат и ограничений на Claude Sonnet.
-- **Визуализация страниц (PDF Snapshot)**: растеризация страниц через `pypdfium2` с подсветкой предложений.
-- **База ВС**: Airbus (A220–A380), Boeing (737–787), Superjet 100, ATR 42/72, Embraer, CRJ, Dash 8, L-410, Cessna, Diamond.
-- **Погода**: Декодер METAR / TAF с расчётом бокового ветра по полосам.
-- **SimBrief**: Импорт оперативного плана полёта (OFP) и разбор навигационного расчёта.
-- **Telegram Mini App & PWA**: интерфейс на `ann.pilotarbuza.com` с авторизацией через Telegram, Google, Apple и Email.
-- **База нормативно-правовых актов**: поиск по ФАП РФ (128, 293, 10, 147).
+This document outlines the strategic development milestones of the **ANN** aviation platform, tracking current production capabilities and planned releases.
 
 ---
 
-## 🎯 Ближайшие планы (Q1–Q2 2027)
+## Current Status: Version 1.2 (Active Production)
 
-### 1. Расширение RAG-индекса и базы ВС
-- [ ] Интеграция полной базы Normal Checklists и Non-Normal Checklists (QRH) с пошаговым ведением пилота.
-- [ ] Поддержка MEL (Minimum Equipment List) с автоматическим вычислением условий отсрочки дефектов (Rectification Interval Categories A, B, C, D).
-- [ ] Оптимизация чанкинга табличных данных (Performance Tables: Takeoff/Landing Distance, Engine Out climb gradients).
+The aviation RAG engine is deployed and operational in production across the Telegram Bot and PWA client.
 
-### 2. Улучшение Mini App & PWA
-- [ ] Интерактивная карта полётов: отображение запасных аэродромов по маршруту SimBrief с цветовой индикацией погоды (VFR / MVFR / IFR / LIFR).
-- [ ] Офлайн-режим для ключевых чеклистов через IndexedDB и Service Worker в PWA.
-- [ ] Персональные закладки и история запросов с синхронизацией между ботом и вебом.
+### Implemented Capabilities:
+- **Hybrid RAG Engine**: Blended SQLite FTS5 (BM25) and LanceDB (`multilingual-e5-base`) via Reciprocal Rank Fusion ($k=60$).
+- **Dual-Stage Answer Verification**: Immediate drafting via Claude Haiku followed by strict numerical verification via Claude Sonnet.
+- **Visual Page Citations**: Dynamic PDF page rasterization using `pypdfium2` with coordinate bounding-box sentence highlighting.
+- **Fleet Coverage**: Airbus (A220–A380), Boeing (737–787), Superjet 100, ATR 42/72, Embraer, CRJ, Dash 8, L-410, Cessna, Diamond.
+- **Aviation Weather**: Real-time METAR / TAF tokenizer with runway-specific crosswind and headwind calculations.
+- **SimBrief Integration**: Operational Flight Plan (OFP) XML/JSON parser with fuel, ZFW, route, and alternate aerodrome calculations.
+- **Telegram Mini App & PWA**: Production web client at `ann.pilotarbuza.com` supporting Telegram, Google, Apple ID, and Email authentication.
+- **Aviation Regulations**: Built-in indexed search across ICAO Annexes, FAA regulations, and Russian Federal Aviation Rules (FAP 128, 293, 10, 147).
 
 ---
 
-## 🔭 Долгосрочные планы (Q3–Q4 2027)
+## Near-Term Milestones (Q1–Q2 2027)
 
-### 3. Речевой ввод и авиационная фразеология
-- [ ] Интеграция модели распознавания речи (Whisper), дообученной на авиационной фразеологии радиообмена (ICAO Doc 9432 и ФАП).
-- [ ] Быстрый голосовой ввод параметров (*«Внуково погода полоса 19 ветер»*) с мгновенным голосовым или текстовым ответом.
+### 1. Knowledge Base & Fleet Expansion
+- [ ] Integration of complete Normal Checklists and Non-Normal Checklists (QRH) with step-by-step interactive pilot guidance.
+- [ ] Minimum Equipment List (MEL) reasoning engine with automated calculation of defect deferral conditions (Rectification Interval Categories A, B, C, D).
+- [ ] Optimized chunking and tabular parsing for aircraft performance tables (Takeoff/Landing Distances, Engine-Out climb gradients).
 
-### 4. Офлайн-поиск в устройстве (On-Device AI)
-- [ ] Экспериментальный запуск легковесных векторных эмбеддингов непосредственно в браузере пилота (PWA) через ONNX Runtime Web / WebAssembly для работы на эшелоне без интернета.
-- [ ] Локальный поиск по предварительно загруженным руководствам конкретного борта.
+### 2. Client & PWA Enhancements
+- [ ] Interactive flight route map: display of enroute alternate aerodromes along SimBrief flight tracks with color-coded weather flight categories (VFR / MVFR / IFR / LIFR).
+- [ ] Offline caching for emergency checklists via IndexedDB and Service Worker in the PWA.
+- [ ] Cross-platform synchronization of bookmarks and query history between Telegram and Web clients.
+
+---
+
+## Long-Term Vision (Q3–Q4 2027)
+
+### 3. Voice Input & Aviation Phraseology
+- [ ] Speech-to-text integration (Whisper) fine-tuned on standard ICAO radio telephony phraseology (Doc 9432).
+- [ ] Rapid verbal parameter entry (*"Vnukovo weather runway 19 wind"*) with instant speech or text synthesis.
+
+### 4. On-Device Local Inference (Offline Flight Deck Mode)
+- [ ] WebAssembly / ONNX Runtime Web deployment of lightweight embedding models running directly inside the pilot's browser (PWA) for cruise flight with zero connectivity.
+- [ ] Local search against pre-cached operator manuals on pilot Electronic Flight Bag (EFB) devices.

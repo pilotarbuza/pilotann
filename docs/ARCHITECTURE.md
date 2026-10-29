@@ -1,47 +1,65 @@
-# Техническая архитектура и системный дизайн ANN (pilotann)
+# Technical Architecture & System Design — ANN (pilotann)
 
-Этот документ содержит детальное инженерное описание архитектуры **ANN**, принципов работы гибридного RAG-поиска, межмодульного взаимодействия, стека библиотек и потоков данных между клиентами, базой данных и AI-моделями.
+[ English | [Русский](ARCHITECTURE.ru.md) ]
+
+This document provides a comprehensive engineering description of the **ANN** architecture, the operational principles of its Hybrid Retrieval-Augmented Generation (Hybrid RAG) engine, inter-module communication topology, library dependency stack, and end-to-end data pipelines connecting clients, embedded datastores, and large language models.
 
 ---
 
-## 1. Общая топология и межмодульные связи
+## 1. System Topology & Inter-Module Communication
 
-Система разделена на три взаимосвязанных слоя: **клиентские интерфейсы**, **асинхронный серверный шлюз** и **движок анализа данных (RAG & Aviation APIs)**.
+The architecture is partitioned into three decoupled tiers: **Client Tier**, **Asynchronous Server Gateway**, and the **Data Processing & AI Pipeline**.
 
 ```mermaid
 flowchart TB
-    subgraph Clients["Клиентский слой"]
-        TG_User["Telegram клиент (бот)"]
+    subgraph Clients["Client Tier"]
+        TG_User["Telegram Client (Bot)"]
         TMA_User["Telegram Mini App"]
-        PWA_User["Браузер / PWA (iOS, Android, Desktop)"]
+        PWA_User["Browser / PWA (iOS, Android, Desktop)"]
     end
 
-    subgraph Gateway["Серверный шлюз (Python 3.10+)"]
-        TG_Core["main.py\naiogram 3.x Engine"]
-        Web_Core["webapp.py\naiohttp Web Server"]
-        FSM["Redis Storage\nСессии и стейты"]
-        Auth["web_accounts.py\nHMAC / JWT / OAuth2"]
-        Push["web_push.py\nVAPID Web Push"]
+    subgraph Gateway["Server Gateway (Python 3.10+)"]
+        TG_Core["main.py
+aiogram 3.x Engine"]
+        Web_Core["webapp.py
+aiohttp HTTP Server"]
+        FSM["redis / Memory
+FSM State Machine"]
+        Auth["web_accounts.py
+HMAC & JWT Auth"]
+        Push["web_push.py
+VAPID Push Service"]
     end
 
-    subgraph Pipeline["RAG Pipeline (ai_agent.py)"]
-        Router["Классификатор намерений\n(Тип ВС, Авиакомпания, Ограничения)"]
-        Cache["ai_cache.py\nКэш ответов (stats.db)"]
-        RAG["ai_index.py\nГибридный поисковый движок"]
-        Render["ai_pages.py\nРендерер страниц PDF"]
-        FastLLM["Claude Haiku (Быстрый драфт)"]
-        VerifyLLM["Claude Sonnet (Строгая верификация)"]
+    subgraph Pipeline["Data Processing & AI Pipeline"]
+        Router["ai_agent.py
+Intent & Fleet Router"]
+        Cache["ai_cache.py
+Semantic Response Cache"]
+        RAG["ai_index.py
+Hybrid RAG Engine"]
+        FastLLM["Claude Haiku
+Streaming Draft"]
+        VerifyLLM["Claude Sonnet
+Strict Verification"]
+        Render["ai_pages.py
+pypdfium2 PDF Renderer"]
     end
 
-    subgraph Storages["Хранилища и Индексы"]
-        FTS["SQLite FTS5\n(Лексический BM25)"]
-        VectorDB["LanceDB\n(Эмбеддинги e5-base)"]
-        Reranker["Cross-Encoder\n(Нейросетевой реранкер)"]
-        StatsDB["stats.db (SQLite)\nАналитика и профили"]
-        PDF_Repo["Хранилище PDF мануалов"]
+    subgraph Storage["Embedded Datastores & Manuals"]
+        FTS["SQLite FTS5
+(BM25 Stemmed Index)"]
+        VectorDB["LanceDB
+(e5-base Embeddings)"]
+        Reranker["Cross-Encoder
+(Neural Reranker)"]
+        StatsDB["stats.db (SQLite)
+Analytics & Profiles"]
+        PDF_Repo["Document Repository
+FCOM / QRH / MEL PDFs"]
     end
 
-    subgraph ExternalAPIs["Внешние авиационные сервисы"]
+    subgraph ExternalAPIs["Aviation APIs"]
         SimBrief["SimBrief API (OFP)"]
         AviationWeather["NOAA / METAR / TAF"]
         OurAirports["OurAirports DB"]
@@ -63,7 +81,7 @@ flowchart TB
 
     %% Pipeline Flow
     Router --> Cache
-    Cache -.->|Хит кэша| TG_Core
+    Cache -.->|Cache Hit| TG_Core
     Router --> RAG
 
     RAG <--> FTS
@@ -87,128 +105,116 @@ flowchart TB
 
 ---
 
-## 2. Движок гибридного поиска (Hybrid RAG)
+## 2. Hybrid RAG Search Engine
 
-Авиационная техническая документация (FCOM, QRH, MEL) обладает специфическими характеристиками:
-- Обилие точных кодов, аббревиатур и численных ограничений (`FL390`, `VMO 350`, `PACK 1 FAULT`).
-- Семантические вопросы пилотов в свободной форме (*«что делать при отказе гидросистемы B на глиссаде»*).
-- Высокие требования к нулевой погрешности галлюцинаций.
+Aviation technical documentation (FCOM, QRH, MEL) exhibits distinct structural properties:
+- High density of precise alphanumeric codes, abbreviations, and numerical thresholds (`FL390`, `VMO 350`, `PACK 1 FAULT`).
+- Natural-language queries submitted by pilots (*"procedure for hydraulic system B failure on final approach"*).
+- Zero tolerance for hallucinated operational limits or crosswind components.
 
-По этой причине ANN использует **двойную систему индексирования с алгоритмом Reciprocal Rank Fusion (RRF)**.
+To address these requirements, ANN implements a **dual-channel retrieval architecture with Reciprocal Rank Fusion (RRF)**.
 
-### 2.1. Лексический индекс (SQLite FTS5)
-* **Технология**: Встроенное полнотекстовое расширение SQLite FTS5 с кастомным токенизатором.
-* **Морфология**: Для русского языка подключён `snowballstemmer`, нормализующий окончания авиационных терминов без потери корня. Для английского языка применяется стемминг Портера.
-* **Ранжирование**: Алгоритм BM25 с повышенными весами для заголовков разделов документа (`title`), ограничений (`limitations`) и процедурных шагов (`steps`).
+### 2.1. Lexical Keyword Index (SQLite FTS5)
+- **Engine**: SQLite FTS5 extension with custom tokenization and prefix indexing.
+- **Stemming**: Configured with `snowballstemmer` for Russian morphology and Porter stemming for English technical terms.
+- **Scoring**: Customized BM25 ranking with boosted weights assigned to section headers (`title`), operational limitations (`limitations`), and procedural action steps (`steps`).
 
-### 2.2. Векторный семантический индекс (LanceDB)
-* **Технология**: Высокопроизводительная колоночная векторная база данных [LanceDB](https://lancedb.com/), работающая без выделенного серверного демона поверх файлов Lance.
-* **Модель эмбеддингов**: `intfloat/multilingual-e5-base` (768 измерений). Модель выбрана из-за сбалансированного качества русско-английского билингуального понимания авиационных контекстов.
-* **Метрика расстояния**: Косинусное сходство (Cosine Similarity).
+### 2.2. Dense Semantic Vector Index (LanceDB)
+- **Engine**: High-throughput serverless columnar vector database [LanceDB](https://lancedb.com/), operating directly over disk-persisted Lance datasets without a background daemon process.
+- **Embedding Model**: `intfloat/multilingual-e5-base` (768 dimensions), selected for its balanced bilingual performance across English and Russian aviation literature.
+- **Distance Metric**: Cosine similarity.
 
-### 2.3. Алгоритм слияния рангов (RRF)
-Результаты поиска из лексического и векторного индексов объединяются с помощью функции взаимного ранжирования:
+### 2.3. Reciprocal Rank Fusion (RRF)
+Search results from the lexical and dense vector channels are merged using reciprocal rank scoring:
 
 $$RRF(d) = \sum_{m \in \{FTS, Vector\}} \frac{1}{k + r_m(d)}$$
 
-где:
-- $r_m(d)$ — порядковый ранг документа $d$ в списке результатов модели $m$ (начиная с 1).
-- $k = 60$ — сглаживающая константа (предотвращает доминирование топового документа из одного списка над сбалансированным документом из обоих).
+Where:
+- $r_m(d)$ is the ordinal rank of document $d$ in the output of retrieval channel $m$ (1-indexed).
+- $k = 60$ is the standard smoothing constant, preventing single-channel outliers from dominating the blended candidate set.
 
-### 2.4. Cross-Encoder реранкинг (Reranker)
-Топ-20 фрагментов, полученных после RRF-слияния, поступают на вход легковесного Cross-Encoder классификатора (или быстрого промпта Haiku), который выставляет каждому чанку точную оценку релевантности от `0` до `3`. Чанки с оценкой ниже пороговой отсекаются, освобождая контекстное окно модели для ключевых фактов.
+### 2.4. Cross-Encoder Neural Reranking
+The top 20 candidate passages from RRF fusion are evaluated by a Cross-Encoder classifier, assigning each chunk a relevance score from `0` to `3`. Passages below the confidence threshold are pruned, maximizing the signal-to-noise ratio within the generation context window.
 
 ---
 
-## 3. Двухэтапная генерация и строгая верификация
+## 3. Two-Stage Generation and Strict Verification
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Pilot as Пилот / Пользователь
+    actor Pilot as Pilot / User
     participant Bot as aiogram 3 / WebApp
     participant Agent as ai_agent.py
-    participant RAG as Поисковый движок
+    participant RAG as Retrieval Engine
     participant FastLLM as Claude Haiku
     participant StrongLLM as Claude Sonnet
     participant Pages as ai_pages.py (PDF)
 
-    Pilot->>Bot: "Какие ограничения по боковому ветру A320 на загрязнённой ВПП?"
-    Bot->>Agent: Запрос с метаданными (тип ВС: A320)
-    Agent->>RAG: Гибридный поиск: FTS5 + LanceDB
-    RAG-->>Agent: Топ-6 проверенных фрагментов FCOM
-    Agent->>FastLLM: Экспресс-синтез ответа + проверка ограничений
-    FastLLM-->>Bot: Стриминг промежуточного ответа пилоту
-    Agent->>StrongLLM: Строгая верификация: сверка чисел и условий с источником
-    StrongLLM-->>Agent: Верифицированный текст + ссылки [1] Стр. 142
-    Agent->>Pages: Запрос рендера страницы 142
-    Pages-->>Bot: Отрендеренная страница с подсветкой строки
-    Bot-->>Pilot: Итоговый ответ + фото фрагмента мануала
+    Pilot->>Bot: "What are the A320 crosswind limits on a contaminated runway?"
+    Bot->>Agent: Request with metadata (aircraft: A320)
+    Agent->>RAG: Hybrid search: FTS5 + LanceDB
+    RAG-->>Agent: Top-6 verified FCOM chunks
+    Agent->>FastLLM: Rapid draft synthesis + limitations check
+    FastLLM-->>Bot: Stream provisional answer to pilot
+    Agent->>StrongLLM: Strict verification: cross-check figures with source
+    StrongLLM-->>Agent: Verified text + citations [1] Page 142
+    Agent->>Pages: Render page 142 request
+    Pages-->>Bot: Rasterized page scan with highlighted clause
+    Bot-->>Pilot: Final verified response + page snapshot
 ```
 
-1. **Классификация запроса**: Система автоматически извлекает:
-   - Тип воздушного судна (A320, B737, SSJ100 и т.д.).
-   - Эксплуатанта (если процедура специфична для конкретной авиакомпании).
-   - Признак «Ограничения / Limitations» (переключает поиск в приоритетный режим раздел Limitations).
-2. **Предварительный драфт (Fast Model — Claude Haiku)**:
-   - Генерирует быстрый ответ для минимизации Time-To-First-Token (TTFT).
-3. **Строгая сверка (Deep Verification — Claude Sonnet)**:
-   - Проверяет каждое числовое значение, размерность (узлы, метры, футы, килограммы) и логические условия (*«IF ... THEN»*) строго по тексту найденных фрагментов.
-   - Любое утверждение, отсутствующее в извлечённых чанках, удаляется из финального ответа.
+1. **Query Intent Classification**: Automatically resolves aircraft fleet type (A320, B737, SSJ100, etc.), operator-specific deviations, and limitations tags (*Limitations*).
+2. **Provisional Draft (Claude Haiku)**: Generates an immediate initial stream, minimizing Time-to-First-Token (TTFT).
+3. **Deep Verification (Claude Sonnet)**: Conducts factual auditing: validates every numerical figure, unit of measurement (knots, meters, feet, kilograms), and conditional logic (*"IF ... THEN"*) strictly against source text. Claims not grounded in retrieved chunks are excised.
 
 ---
 
-## 4. Движок визуализации страниц (PDF Page Renderer)
+## 4. Visual Citation Engine (PDF Page Renderer)
 
-ANN не просто даёт цитату, а визуально подтверждает её сканом оригинального документа:
-1. Модуль `ai_pages.py` обращается к оригинальному PDF-файлу нужной редакции FCOM/QRH.
-2. С помощью библиотеки `pypdfium2` (высокопроизводительный Python-биндинг к Google PDFium) страница мгновенно растеризуется в высоком разрешении.
-3. Координаты найденного предложения сопоставляются с геометрическими границами (Bounding Boxes) текстового слоя страницы.
-4. Библиотека `Pillow` накладывает аккуратную полупрозрачную маркерную подсветку цитируемой строки и генерирует оптимизированное превью для отправки в Telegram или отображения в WebApp.
-
----
-
-## 5. WebApp, PWA и архитектура авторизации
-
-Помимо классического диалога в Telegram, ANN предоставляет автономное веб-приложение:
-
-* **Фронтенд**: Нативный JavaScript (ES2022), CSS-переменные с поддержкой тёмной/светлой авиационной темы, PWA Manifest и Service Worker (`sw.js`) для работы в офлайне и быстрого кэширования статики.
-* **Картография**: На базе `MapLibre GL`, визуализирующая границы зон полётной информации (FIR), аэропорты и маршруты.
-* **Безопасная мультиавторизация (`web_accounts.py`)**:
-  - **Telegram WebApp**: верификация строки `initData` через криптографическую проверку HMAC-SHA256 с использованием bot token.
-  - **Google OAuth / Apple ID**: валидация открытых ключей через JWKS и библиотеку `PyJWT[crypto]`.
-  - **Email One-Time Passwords**: 6-значные одноразовые криптостойкие коды подтверждения с ограничением по частоте (Rate Limiting).
-* **Уведомления**: Push-уведомления через протокол VAPID (RFC 8292) с шифрованием полезной нагрузки по стандарту Web Push.
+ANN pairs text answers with visual verification from official manufacturer manuals:
+1. The `ai_pages.py` module accesses the authoritative PDF revision for the target fleet.
+2. The page is rasterized via `pypdfium2` (high-performance Python bindings to Google PDFium) at high resolution.
+3. Sentence coordinates are mapped to bounding boxes in the document text layer.
+4. `Pillow` renders a semi-transparent highlight marker over the cited paragraph and generates an optimized JPEG/WebP preview for delivery to the client.
 
 ---
 
-## 6. Вспомогательные авиационные интеграции
+## 5. WebApp, PWA & Authentication Architecture
 
-* **METAR / TAF (`metar_decode.py`)**:
-  - Токенизация сводок регулярной (METAR) и прогностической (TAF) погоды.
-  - Автоматический расчёт компонентов бокового и встречного/попутного ветра относительно рабочих курсов полос аэропорта.
-  - Декодирование сложной облачности (CB, TCU), явлений (FG, SN, TS, BLDU) и состояния полос (RVR, слой загрязнения, коэффициент сцепления).
-* **SimBrief Parser (`simbrief.py`)**:
-  - Загрузка оперативного плана полета (OFP) в формате XML/JSON по SimBrief Username.
-  - Экстракция эшелона полёта (CRZ ALT), блока топлива, ZFW, запасных аэродромов, маршрута и ветровой обстановки по точкам маршрута.
-* **OurAirports DB (`airports.py`)**:
-  - Локальный географический индекс аэропортов мира: координаты, ICAO/IATA, превышение аэродрома, характеристики и длина ВПП, частоты связных радиостанций и ILS/VOR.
+Alongside Telegram, ANN provides an independent progressive web application:
+
+- **Frontend**: Vanilla ES2022 JavaScript, responsive dark/light flight deck CSS variables, Web App Manifest, and Service Worker (`sw.js`) for offline asset caching.
+- **Cartography**: `MapLibre GL` rendering Flight Information Region (FIR) boundaries, aerodromes, and flight routes.
+- **Cryptographic Multi-Auth (`web_accounts.py`)**:
+  - **Telegram WebApp**: HMAC-SHA256 signature verification of `initData` using the bot token.
+  - **Google OAuth / Apple ID**: Public key validation using JWKS and `PyJWT[crypto]`.
+  - **Email One-Time Passwords**: 6-digit cryptographically random verification tokens with sliding rate limiting.
+- **Push Delivery**: Web Push notifications over RFC 8292 VAPID with encrypted payloads.
 
 ---
 
-## 7. Полная матрица библиотек и зависимостей
+## 6. Aviation Tooling & Auxiliary Integrations
 
-| Библиотека | Назначение | Почему выбрана |
+- **METAR / TAF (`metar_decode.py`)**: Regular (METAR) and terminal forecast (TAF) tokenizer. Computes headwind/crosswind/tailwind components based on aerodrome runway magnetic headings, cloud layers (CB, TCU), and runway surface condition reports (RVR, contaminant depth, braking action).
+- **SimBrief Parser (`simbrief.py`)**: Parses SimBrief XML/JSON Operational Flight Plans (OFP), extracting cruise levels (CRZ ALT), block fuel, zero-fuel weight (ZFW), alternate airports, routing, and waypoint wind components.
+- **OurAirports DB (`airports.py`)**: Embedded SQLite index of global aerodromes: ICAO/IATA codes, elevation, runway layout, communication frequencies, and ILS/VOR navigation aids.
+
+---
+
+## 7. Library & Dependency Matrix
+
+| Library | Function | Architectural Rationale |
 |---|---|---|
-| **`aiogram>=3.4.0`** | Ядро Telegram-бота | Полностью асинхронный фреймворк с поддержкой Bot API 7.x, удобным роутингом, фильтрами и нативной поддержкой Telegram Mini Apps. |
-| **`lancedb>=0.20`** | Векторная БД | Zero-infrastructure (работает как встроенная база без отдельного сервера), колоночный формат хранения Lance, исключительная скорость векторного поиска. |
-| **`sentence-transformers>=2.4.0`** | Векторные эмбеддинги | Стандарт индустрии для запуска нейросетевых моделей эмбеддингов (`multilingual-e5-base`) локально на CPU/GPU. |
-| **`snowballstemmer>=2.2`** | Морфологический стемминг | Высокая скорость нормализации слов для русского и английского языков в FTS-поиске без тяжеловесных зависимостей. |
-| **`pypdfium2>=4.30`** | Рендеринг PDF | Высокоскоростной рендеринг страниц PDF на движке Google PDFium (в 5–10 раз быстрее poppler/pdf2image), низкое потребление RAM. |
-| **`pillow>=10`** | Обработка изображений | Наложение графической подсветки (bounding box highlight) на страницы PDF, сжатие и конвертация в JPEG/WebP. |
-| **`aiohttp>=3.9.0`** | Асинхронный HTTP сервер и клиент | Одновременное обслуживание REST API для Mini App, раздача статики и асинхронные HTTP-запросы к OpenRouter / SimBrief. |
-| **`redis>=5.0.0`** | Кэш и FSM | Быстрое хранение состояний конечных автоматов (FSM) пользователей Telegram и блокировок от спама. |
-| **`openai>=1.14.0`** | Клиент LLM | Официальный клиент для взаимодействия с OpenRouter / OpenAI-совместимыми эндпоинтами нейросетей. |
-| **`PyJWT[crypto]>=2.8`** | Криптография авторизации | Валидация подписей RS256/ES256 для ID-токенов Google Sign-In и Sign in with Apple. |
-| **`python-dotenv>=1.0.0`** | Управление окружением | Безопасная загрузка конфигураций и секретов из `.env`. |
-| **`astral>=3.2`** | Астрономические расчёты | Расчёт времени восхода/заката солнца и сумерек для аэропортов маршрута. |
+| `aiogram>=3.4.0` | Telegram Bot Core | Fully asynchronous framework supporting Bot API 7.x, FSM filters, and native Telegram Mini Apps. |
+| `lancedb>=0.20` | Vector Database | Serverless embedded database with Lance columnar format, delivering high-speed disk-backed vector retrieval. |
+| `sentence-transformers>=2.4.0` | Dense Embeddings | Industry standard for executing `multilingual-e5-base` models on local CPU/GPU hardware. |
+| `snowballstemmer>=2.2` | Morphological Stemmer | High-speed normalization for English and Russian lexical indexing in SQLite FTS5 without bulky dependencies. |
+| `pypdfium2>=4.30` | PDF Engine | Google PDFium-based rendering (5-10x faster than poppler/pdf2image) with minimal memory footprint. |
+| `pillow>=10` | Graphic Compositing | Coordinate-based highlight overlays on PDF page scans and image delivery optimization. |
+| `aiohttp>=3.9.0` | Asynchronous Server | Handles REST APIs, PWA static assets, and async calls to external weather and SimBrief APIs. |
+| `redis>=5.0.0` | Session & State Store | High-throughput storage for Telegram conversation states and request rate limiting. |
+| `openai>=1.14.0` | LLM Gateway Client | Unified API client for OpenRouter and OpenAI-compatible inference endpoints. |
+| `PyJWT[crypto]>=2.8` | Auth Cryptography | RS256/ES256 signature verification for Google Sign-In and Sign in with Apple tokens. |
+| `python-dotenv>=1.0.0` | Configuration | Secure environment variable injection from `.env`. |
+| `astral>=3.2` | Solar Ephemeris | Computes sunrise, sunset, and civil twilight timings across route waypoints. |

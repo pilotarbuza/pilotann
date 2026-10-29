@@ -40,7 +40,7 @@
 
     <!-- Subtitle (Clean & Human) -->
     <text x="0" y="54" font-family="'Manrope', -apple-system, BlinkMacSystemFont, sans-serif" font-size="22" font-weight="400" fill="#9CCAD4" letter-spacing="-0.3">
-      AI-ассистент по лётной и технической документации
+      AI Flight Deck &amp; Aviation Documentation Assistant
     </text>
   </g>
 
