@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#08101D"/>
+      <stop offset="50%" stop-color="#0E1A2B"/>
+      <stop offset="100%" stop-color="#14263E"/>
+    </linearGradient>
+    <linearGradient id="cyan-glow" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#00D2FF"/>
+      <stop offset="100%" stop-color="#3A7BD5"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FF5C73"/>
+      <stop offset="100%" stop-color="#FF8A9B"/>
+    </linearGradient>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1E334D" stroke-width="0.8" opacity="0.4"/>
+    </pattern>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="400" fill="url(#bg)"/>
+  <rect width="1200" height="400" fill="url(#grid)"/>
+
+  <!-- Flight Deck HUD Elements -->
+  <g opacity="0.25" stroke="#00D2FF" stroke-width="1.2" fill="none">
+    <!-- Pitch ladder lines -->
+    <line x1="880" y1="140" x2="940" y2="140"/>
+    <line x1="940" y1="140" x2="940" y2="150"/>
+    <line x1="980" y1="140" x2="1040" y2="140"/>
+    <line x1="980" y1="140" x2="980" y2="150"/>
+
+    <line x1="860" y1="200" x2="1060" y2="200" stroke-dasharray="6,6"/>
+    
+    <line x1="880" y1="260" x2="940" y2="260"/>
+    <line x1="940" y1="260" x2="940" y2="250"/>
+    <line x1="980" y1="260" x2="1040" y2="260"/>
+    <line x1="980" y1="260" x2="980" y2="250"/>
+
+    <!-- Compass circle -->
+    <circle cx="960" cy="200" r="110" stroke-width="1.5" stroke-dasharray="4,8"/>
+    <circle cx="960" cy="200" r="8"/>
+  </g>
+
+  <!-- Aircraft Silhouette (Right Side) -->
+  <g transform="translate(960, 200) scale(0.9)" opacity="0.85">
+    <path d="M 0,-60 L 5,-20 L 50,15 L 50,22 L 6,10 L 6,45 L 20,58 L 20,64 L 0,58 L -20,64 L -20,58 L -6,45 L -6,10 L -50,22 L -50,15 L -5,-20 Z" fill="url(#cyan-glow)"/>
+  </g>
+
+  <!-- Left Content -->
+  <!-- Tag badge -->
+  <g transform="translate(80, 75)">
+    <rect width="180" height="30" rx="15" fill="#132B45" stroke="#00D2FF" stroke-width="1" opacity="0.9"/>
+    <circle cx="16" cy="15" r="4" fill="#6FD08C"/>
+    <text x="30" y="20" fill="#E2F1FF" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="600" letter-spacing="1.5">AVIONICS AI AGENT</text>
+  </g>
+
+  <!-- Main Title -->
+  <text x="80" y="165" fill="#FFFFFF" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="56" font-weight="800" letter-spacing="-1">
+    ANN <tspan fill="url(#cyan-glow)">Assistant</tspan>
+  </text>
+
+  <!-- Subtitle -->
+  <text x="80" y="210" fill="#94A9C4" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="20" font-weight="400">
+    AI-ассистент по лётной документации гражданской авиации
+  </text>
+  <text x="80" y="240" fill="#6C829E" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="16" font-weight="400">
+    FCOM / QRH / MEL • LanceDB + FTS5 RAG • METAR / TAF • SimBrief • Mini App &amp; PWA
+  </text>
+
+  <!-- Feature Pills -->
+  <g transform="translate(80, 285)">
+    <!-- Pill 1 -->
+    <rect x="0" y="0" width="130" height="32" rx="6" fill="#15273C" stroke="#254263" stroke-width="1"/>
+    <text x="14" y="20" fill="#6FD08C" font-family="monospace" font-size="12" font-weight="700">RAG ENGINE</text>
+
+    <!-- Pill 2 -->
+    <rect x="142" y="0" width="145" height="32" rx="6" fill="#15273C" stroke="#254263" stroke-width="1"/>
+    <text x="156" y="20" fill="#00D2FF" font-family="monospace" font-size="12" font-weight="700">METAR DECODER</text>
+
+    <!-- Pill 3 -->
+    <rect x="299" y="0" width="150" height="32" rx="6" fill="#15273C" stroke="#254263" stroke-width="1"/>
+    <text x="313" y="20" fill="#FF8A9B" font-family="monospace" font-size="12" font-weight="700">SIMBRIEF OFP</text>
+
+    <!-- Pill 4 -->
+    <rect x="461" y="0" width="140" height="32" rx="6" fill="#15273C" stroke="#254263" stroke-width="1"/>
+    <text x="475" y="20" fill="#E2F1FF" font-family="monospace" font-size="12" font-weight="700">PDF RENDERER</text>
+  </g>
+</svg>
